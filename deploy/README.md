@@ -4,7 +4,19 @@
 
 本应用是**纯前端单文件**（index.html 内嵌全部 1498 条课程数据），无需数据库、无需 Node/Python 后端，任何静态服务器都能跑。
 
-推荐两种方式，任选其一：
+## 当前云服务器（60.205.204.162）的实际部署
+
+- 应用目录：`/srv/apps/grad-timetable/app/`（index.html + manifest.webmanifest + icon.svg）
+- 运行方式：docker 容器 `grad-timetable`（127.0.0.1:3901→8080），nginx 现役站点 `hackathon` 的 `location ^~ /kb/` 反代到 3901，公网入口 `http://60.205.204.162/kb/`
+- **每次修改后一键发布**（构建 → 推 GitHub → 备份并上传服务器 → md5 校验）：
+
+```bash
+bash work/deploy.sh "本次修改说明"
+```
+
+- 服务器上每次发布前会自动留备份 `index.html.bak-日期时间`，回滚直接 `cp` 回去即可。
+
+## 其他托管方式（任选其一）
 
 ### 方式 A：Nginx（服务器已有 nginx，推荐）
 
