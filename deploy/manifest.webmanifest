@@ -1,0 +1,15 @@
+{
+  "name": "浙工商研究生课表浏览器",
+  "short_name": "浙商课表",
+  "description": "浙江工商大学 2026-2027 第一学期研究生课表 · 跨学科旁听计划",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f6f2e8",
+  "theme_color": "#a63a2b",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
