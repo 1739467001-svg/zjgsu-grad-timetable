@@ -1151,7 +1151,8 @@ function renderFocus(){
   const w=+wsel.value||1;
   const all=DATA.map((r,i)=>({r,i})).filter(({r})=>r.d===FOCUS_DEPT);
   const inWeek=all.filter(({r})=>{const wz=parseWeeks(r.z);return !wz||wz.has(w);});
-  $("focusStats").innerHTML=`共 <b>${all.length}</b> 条排课 · <b>${new Set(all.map(({r})=>r.c)).size}</b> 门课 · 第${w}周在开 <b>${inWeek.length}</b> 门`;
+  const w6courses=new Set(inWeek.map(({r})=>r.c)).size;
+  $("focusStats").innerHTML=`共 <b>${all.length}</b> 条排课 · <b>${new Set(all.map(({r})=>r.c)).size}</b> 门课 · 第${w}周在开 <b>${inWeek.length}</b> 条（<b>${w6courses}</b> 门课）`;
   /* 周课表：重叠连通块分组，块内课程竖排（算法与"我的清单"一致） */
   $("fthead").innerHTML="<th style='width:52px'>节次</th>"+DAYS.map((d,i)=>`<th class="${i>4?'we':''}">${DAYN[i]}</th>`).join("");
   const timed=inWeek.map(({r,i})=>({r,i,d:parseDayNum(r.w),pp:parsePeriods(r.p)})).filter(x=>x.d>0&&x.pp);
