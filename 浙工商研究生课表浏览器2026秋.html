@@ -160,6 +160,12 @@ table.list tr.reco td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 table.list tr.kt td{background:rgba(88,99,156,.07)}
 table.list tr.kt td:first-child{box-shadow:inset 3px 0 0 #58639c}
 .trow.kt{box-shadow:0 2px 6px rgba(0,0,0,.18), inset 0 0 0 2px #ffd54d}
+/* 兴趣方向学院课程标注（按院系着色） */
+.badge.goal{background:var(--gc,#a63a2b)}
+table.list tr.goal td:first-child{box-shadow:inset 3px 0 0 var(--gc,#a63a2b)}
+.trow.goal{box-shadow:0 2px 6px rgba(0,0,0,.18), inset 0 0 0 2px var(--gc,#a63a2b)}
+.fchip.goal{cursor:pointer}
+.fchip.goal.on{background:var(--gc,#a63a2b);border-color:var(--gc,#a63a2b);color:#fdf9f0}
 .small{color:var(--ink2);font-size:12px}
 .empty{text-align:center;padding:50px 0;color:var(--ink2);font-size:14px}
 
@@ -415,8 +421,10 @@ details.guide .gbody b{color:var(--zhu)}
     <select id="focusDept"></select>
     <select id="focusWeek"></select>
     <span class="count" id="focusStats">—</span>
+    <span class="count" style="margin-left:8px">兴趣方向</span>
+    <span id="goalChips" style="display:inline-flex;gap:7px;flex-wrap:wrap"></span>
   </div>
-  <div class="warnbox no-print" style="margin-bottom:14px">💡 <b>用法：</b>本页是<b>我关注的课表</b>——聚焦一个院系（默认统计与数据科学学院，可切换，自动记住）。上方周课表按所选教学周显示该院在开的课程；下方「课程时间安排」列出该院全部课程，几点到几点由校方作息表换算（可在「我的旁听清单」底部校准）。多师轮讲课点 ☆ 会整门收藏（含各教师周段）；<b>「全校并行课表」</b>标签页则是全校所有学院的同时段课程，适合平行考察。</div>
+  <div class="warnbox no-print" style="margin-bottom:14px">💡 <b>用法：</b>本页是<b>我关注的课表</b>——聚焦一个院系（默认统计与数据科学学院，可切换，自动记住）。上方周课表按所选教学周显示该院在开的课程；下方「课程时间安排」列出该院全部课程，几点到几点由校方作息表换算（可在「我的旁听清单」底部校准）。多师轮讲课点 ☆ 会整门收藏（含各教师周段）；<b>「全校并行课表」</b>标签页则是全校所有学院的同时段课程，适合平行考察。<b>「兴趣方向」</b>是两个收藏方向的快捷入口：🎨 <b>审美艺术</b>（艺术设计学院）、🔤 <b>英语</b>（外国语学院）——点击即整院查看，这些学院的课程在检索和全校课表中也会以对应颜色标注。</div>
   <div class="gridwrap">
     <div class="scrollhint" style="display:none"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>左右滑动查看完整周课表</div>
     <table class="tt"><thead><tr id="fthead"></tr></thead><tbody id="ftbody"></tbody></table>
@@ -479,7 +487,7 @@ details.guide .gbody b{color:var(--zhu)}
       <tbody id="tbody"></tbody>
     </table>
   </div>
-  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。带 <span class="badge kt">★重点教师</span> 徽章的是本学期重点关注教师（张浩泽）的课程，周课表中以金色边框同步标注。</div>
+  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。带 <span class="badge kt">★重点教师</span> 徽章的是本学期重点关注教师（张浩泽）的课程，周课表中以金色边框同步标注；<span class="badge goal" style="--gc:#a63a2b">审美</span> 与 <span class="badge goal" style="--gc:#35507d">英语</span> 彩色徽章为兴趣方向学院（艺术设计 / 外国语）的课程，同样在周课表中以对应颜色描边。</div>
 </section>
 
 <!-- ================= MY LIST ================= -->
@@ -611,6 +619,16 @@ const MYCOLORS = ["#b0432f","#35507d","#4a7c59","#8a7332","#58639c","#3f7d6d","#
 /* 重点关注教师：其课程全站标注（检索徽章 / 周课表金边 / 详情弹窗）。要增删关注对象改这里即可 */
 const KEY_TEACHERS=["张浩泽"];
 const isKeyTeacher=t=>KEY_TEACHERS.some(k=>(t||"").includes(k));
+/* 兴趣方向学院：课程全站标注（检索徽章/全校课表描边/详情弹窗），首页有快捷入口可整院查看 */
+const GOAL_DEPTS={
+ "艺术设计学院":{name:"审美艺术",short:"审美",col:"#a63a2b",icon:"🎨"},
+ "外国语学院":{name:"英语学习",short:"英语",col:"#35507d",icon:"🔤",
+   override:c=>/法语|中法/.test(c)?{tag:"法语",col:"#8a7332"}:(/二外|第二外国语/.test(c)?{tag:"二外",col:"#57534a"}:null)}
+};
+function goalMark(r){
+  const g=GOAL_DEPTS[r.d]; if(!g) return null;
+  return (g.override&&g.override(r.c))||{tag:g.short,col:g.col};
+}
 
 /* ---------- utils ---------- */
 const $ = id => document.getElementById(id);
@@ -894,11 +912,12 @@ function render(){
   body2.innerHTML=rows.map(({r,i})=>{
     const reco=RECO_KEYS.has(r.c+"|"+r.t.split("(")[0].split("/")[0]);
     const kt=isKeyTeacher(r.t);
+    const gm=goalMark(r);
     const on=inMy(r);
     const pp=parsePeriods(r.p);
-    return `<tr class="${reco?'reco':''} ${kt?'kt':''}" style="cursor:pointer" onclick="showCourseModal(DATA[${i}])">
+    return `<tr class="${reco?'reco':''} ${kt?'kt':''} ${gm?'goal':''}" style="${gm?`--gc:${gm.col};`:``}cursor:pointer" onclick="showCourseModal(DATA[${i}])">
       <td><button class="favbtn ${on?'in':''}" onclick="event.stopPropagation();toggleMy(DATA[${i}])">${on?'★':'☆'}</button></td>
-      <td class="c">${r.c}${reco?'<span class="badge">★推荐</span>':''}${kt?'<span class="badge kt">★重点教师</span>':''}<div class="small">${r.n}</div></td>
+      <td class="c">${r.c}${reco?'<span class="badge">★推荐</span>':''}${kt?'<span class="badge kt">★重点教师</span>':''}${gm?`<span class="badge goal" style="--gc:${gm.col}">${gm.tag}</span>`:""}<div class="small">${r.n}</div></td>
       <td>${r.d}</td>
       <td><span class="tlink" title="查看该教师全部课程" onclick="event.stopPropagation();goTeacher('${r.t.replace(/'/g,"\\'")}')">${r.t}</span></td>
       <td>${r.w} ${r.p}${pp?`<div class="small" style="color:var(--zhu)">${blockTime(pp[0],pp[1])}</div>`:""}<div class="small">${r.s||""}</div></td>
@@ -958,8 +977,9 @@ function renderMy(){
     tb.innerHTML=items.map(r=>{
       const rec=DATA.find(d=>d.c===r.c&&d.t===r.t&&d.w===r.w&&d.p===r.p&&d.r===r.r&&d.z===r.z);
       const pp=parsePeriods(r.p);
+      const gm=goalMark(r);
       return `<tr style="cursor:pointer" onclick='showCourseModal(${rec?`DATA[${DATA.indexOf(rec)}]`:JSON.stringify(r)})'>
-      <td class="c">${r.c}<div class="small">${r.d}</div></td><td>${r.t}</td>
+      <td class="c">${r.c}${gm?`<span class="badge goal" style="--gc:${gm.col}">${gm.tag}</span>`:""}<div class="small">${r.d}</div></td><td>${r.t}</td>
       <td>${r.w} ${r.p}${pp?`<div class="small" style="color:var(--zhu)">${blockTime(pp[0],pp[1])}</div>`:""}</td><td>${r.x||"—"} ${r.r}</td><td class="small">${prettyWeek(r.z)}</td>
       <td><button class="favbtn in" data-k="${encodeURIComponent(myKey(r))}" onclick="event.stopPropagation();removeMyByKey(this.dataset.k)">移除</button></td></tr>`;}).join("");
   }
@@ -1008,7 +1028,9 @@ function renderMy(){
           const ci=Math.abs(x.r.c.length*7+x.r.t.length*13)%MYCOLORS.length;
           const conf=confKeys.has(myKey(x.r));
           const kt=isKeyTeacher(x.r.t);
-          return `<div class="trow ${conf?'conf':''} ${kt?'kt':''}" style="background:${MYCOLORS[ci]}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}">
+          const gm=goalMark(x.r);
+          const bcls=(conf?'conf ':'')+(kt?'kt':(gm?'goal':''));
+          return `<div class="trow ${bcls}" style="background:${MYCOLORS[ci]}${gm&&!kt?`;--gc:${gm.col}`:``}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}">
           <b>${esc(x.r.c)}${kt?" ★":""}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div>`;}).join("");
         row+=`<td rowspan="${span}">${blocks}</td>`;
       } else if(!groups.some(g=>g.d===d&&p>g.pmin&&p<=g.pmax)){
@@ -1092,10 +1114,13 @@ function renderWeekAll(){
         const ref=idxs.length?idxs[0]:null;
         const x=g.members[0];
         const ktAny=uniq.some(y=>isKeyTeacher(y.r.t)), ktX=isKeyTeacher(x.r.t);
+        let goalAny=false, gcol=null;
+        uniq.forEach(y=>{const m=goalMark(y.r); if(m){goalAny=true; if(!gcol)gcol=m.col;}});
+        const bcls=ktAny?'kt':(goalAny?'goal':'');
         const more=uniq.length>1? ` +${uniq.length-1}` : "";
         const ci=Math.abs(x.r.c.length*7+x.r.t.length*13)%MYCOLORS.length;
         const onclick=ref!==null? `showCourseModal(DATA[${ref}],wkGroupHtml([${idxs.join(",")}]))` : "";
-        row+=`<td rowspan="${span}"><div class="trow ${ktAny?'kt':''}" style="background:${MYCOLORS[ci]}" ${onclick?`onclick='${onclick}'`:``} title="${esc(x.r.c)} ${esc(x.r.t.split("/")[0])} ${esc(x.r.r)}">
+        row+=`<td rowspan="${span}"><div class="trow ${bcls}" style="background:${MYCOLORS[ci]}${goalAny&&!ktAny?`;--gc:${gcol}`:``}" ${onclick?`onclick='${onclick}'`:``} title="${esc(x.r.c)} ${esc(x.r.t.split("/")[0])} ${esc(x.r.r)}">
           <b>${esc(x.r.c.split("(")[0])}${ktX?" ★":""}${more}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div></td>`;
       } else if(!(dayGroup[d]||[]).some(g=>p>g.pmin&&p<=g.pmax)){
         row+=`<td class="ph"></td>`;
@@ -1108,9 +1133,9 @@ function renderWeekAll(){
 function wkGroupHtml(idxs){
   if(!idxs||idxs.length<2) return "";
   const rows=idxs.map(i=>{
-    const r=DATA[i]; const on=inMy(r);
+    const r=DATA[i]; const on=inMy(r); const gm=goalMark(r);
     return `<div class="row" style="border:none"><b>${r.w} ${r.p}</b>
-      <span><b>${esc(r.c)}</b>${isKeyTeacher(r.t)?'<span class="badge kt">★重点教师</span>':''} · ${esc(r.t)} · ${esc(r.x||"—")} ${esc(r.r)} · ${esc(r.n)} ${esc(r.g)}人
+      <span><b>${esc(r.c)}</b>${isKeyTeacher(r.t)?'<span class="badge kt">★重点教师</span>':''}${gm?`<span class="badge goal" style="--gc:${gm.col}">${gm.tag}</span>`:""} · ${esc(r.t)} · ${esc(r.x||"—")} ${esc(r.r)} · ${esc(r.n)} ${esc(r.g)}人
       <button class="favbtn ${on?'in':''}" style="font-size:12px;padding:4px 12px;margin-left:8px"
         onclick="event.stopPropagation();toggleMy(DATA[${i}]);showCourseModal(DATA[${i}],wkGroupHtml([${idxs.join(",")}]))">${on?'★ 已收藏':'☆ 收藏'}</button></span></div>`;
   }).join("");
@@ -1240,9 +1265,33 @@ function renderFocus(){
       <td class="small">${esc(zs)}${dates}</td>
       <td>${esc(first.r.g)}</td></tr>`;
   }).join("");
+  syncGoalChips();
 }
 initFocus();
 renderFocus();
+/* 兴趣方向快捷入口：点击即切换关注院系（整院查看） */
+function buildGoalChips(){
+  const box=$("goalChips");
+  box.innerHTML=Object.entries(GOAL_DEPTS).map(([d,g])=>{
+    const n=new Set(DATA.filter(r=>r.d===d).map(r=>r.c)).size;
+    return `<span class="fchip goal" data-dept="${esc(d)}" style="--gc:${g.col}" title="${esc(g.name)} · 点按切换到${esc(d)}">${g.icon} ${g.name} · ${esc(d)}（${n}门）</span>`;
+  }).join("");
+  box.querySelectorAll(".fchip.goal").forEach(ch=>{
+    ch.onclick=()=>{
+      FOCUS_DEPT=ch.dataset.dept;
+      try{localStorage.setItem("zjsu_focus",FOCUS_DEPT);}catch(e){}
+      $("focusDept").value=FOCUS_DEPT;
+      renderFocus();
+      window.scrollTo({top:0,behavior:"smooth"});
+    };
+  });
+  syncGoalChips();
+}
+function syncGoalChips(){
+  document.querySelectorAll("#goalChips .fchip.goal").forEach(ch=>
+    ch.classList.toggle("on",ch.dataset.dept===FOCUS_DEPT));
+}
+buildGoalChips();
 const SLOT_SEG=["上午","上午","上午","上午","上午","下午","下午","下午","下午","晚上","晚上","晚上"];
 function blockTime(min,max){ return PT[min-1][0]+"–"+PT[max-1][1]; }
 function periodBreakdown(min,max){
@@ -1594,6 +1643,10 @@ let MODAL_REF=null;   /* 弹窗当前展示的记录：收藏按钮经它取值�
 function showCourseModal(r,extraHtml,domc){
   MODAL_REF=r;
   const on=inMy(r);
+  const marks=[];
+  if(isKeyTeacher(r.t)) marks.push(`<b style="color:#58639c">★ 重点关注教师</b>（${esc(r.t)}）`);
+  { const g=GOAL_DEPTS[r.d];
+    if(g) marks.push(`<b style="color:${g.col}">◈ 兴趣方向 · ${esc(g.name)}</b>（${esc(r.d)}${goalMark(r).tag!==g.short?` · 本段为${esc(goalMark(r).tag)}课`:``}）`); }
   openModal(`
     <h3>${r.c}</h3>
     ${timeRowsHtml(r)}
@@ -1601,7 +1654,7 @@ function showCourseModal(r,extraHtml,domc){
     <div class="row"><b>地点</b><span>${r.x?r.x+"校区 ":""}${r.r}</span></div>
     <div class="row"><b>教师</b><span>${r.t}</span></div>
     <div class="row"><b>院系</b><span>${r.d}</span></div>
-    ${isKeyTeacher(r.t)?`<div class="row"><b>标注</b><span style="color:#58639c"><b>★ 重点关注教师</b>（${esc(r.t)}）</span></div>`:""}
+    ${marks.length?`<div class="row"><b>标注</b><span>${marks.join("<br>")}</span></div>`:""}
     <div class="row"><b>性质</b><span>${r.n} · 选课人数 ${r.g}</span></div>
     ${extraHtml||""}
     <div style="margin-top:14px"><button class="favbtn ${on?'in':''}" style="font-size:13px;padding:7px 18px"
