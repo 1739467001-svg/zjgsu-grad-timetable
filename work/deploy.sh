@@ -18,12 +18,16 @@ git commit -m "$MSG" || echo "（无改动，跳过提交）"
 git push
 
 echo "[3/4] 上传到云服务器 $SERVER:$APP_DIR/（先自动备份线上版）"
-ssh -o BatchMode=yes "$SERVER" "cp $APP_DIR/index.html $APP_DIR/index.html.bak-\$(date +%Y%m%d-%H%M) 2>/dev/null || true"
-scp -o BatchMode=yes "$FILE" "$SERVER:$APP_DIR/index.html"
+SSH_OPTS="-o BatchMode=yes -o ConnectTimeout=10"
+if ! ssh $SSH_OPTS "$SERVER" true 2>/dev/null; then
+  echo "✗ 服务器 SSH 连不上（本机网络或代理故障）。GitHub 已推送，服务器未更新——网络恢复后重跑本脚本即可。"; exit 3
+fi
+ssh $SSH_OPTS "$SERVER" "cp $APP_DIR/index.html $APP_DIR/index.html.bak-\$(date +%Y%m%d-%H%M) 2>/dev/null || true"
+scp $SSH_OPTS "$FILE" "$SERVER:$APP_DIR/index.html"
 
 echo "[4/4] 线上验证"
 LOCAL_MD5=$(md5 -q "$FILE")
-REMOTE_MD5=$(ssh -o BatchMode=yes "$SERVER" "md5sum $APP_DIR/index.html" | cut -d' ' -f1)
+REMOTE_MD5=$(ssh $SSH_OPTS "$SERVER" "md5sum $APP_DIR/index.html" | cut -d' ' -f1)
 if [ "$LOCAL_MD5" = "$REMOTE_MD5" ]; then
   echo "✓ 文件校验一致（md5 $LOCAL_MD5）"
 else
