@@ -155,6 +155,11 @@ table.list tr.reco td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .tlink:hover{color:var(--zhu)}
 .badge{display:inline-block;font-size:10px;color:#fff;background:var(--gold);border-radius:3px;
   padding:1px 6px;margin-left:6px;vertical-align:1px;letter-spacing:1px}
+/* 重点关注教师课程标注（★金边/徽章） */
+.badge.kt{background:#58639c}
+table.list tr.kt td{background:rgba(88,99,156,.07)}
+table.list tr.kt td:first-child{box-shadow:inset 3px 0 0 #58639c}
+.trow.kt{box-shadow:0 2px 6px rgba(0,0,0,.18), inset 0 0 0 2px #ffd54d}
 .small{color:var(--ink2);font-size:12px}
 .empty{text-align:center;padding:50px 0;color:var(--ink2);font-size:14px}
 
@@ -474,7 +479,7 @@ details.guide .gbody b{color:var(--zhu)}
       <tbody id="tbody"></tbody>
     </table>
   </div>
-  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。</div>
+  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。带 <span class="badge kt">★重点教师</span> 徽章的是本学期重点关注教师（张浩泽）的课程，周课表中以金色边框同步标注。</div>
 </section>
 
 <!-- ================= MY LIST ================= -->
@@ -603,6 +608,9 @@ const DAYS = ["星期一","星期二","星期三","星期四","星期五","星�
 const DAYN = ["周一","周二","周三","周四","周五","周六","周日"];
 const RECO_KEYS = new Set(RECO.map(r=>r.c+"|"+r.t.split("(")[0].split("/")[0]));
 const MYCOLORS = ["#b0432f","#35507d","#4a7c59","#8a7332","#58639c","#3f7d6d","#7d4a35","#a05a72","#5b7065","#8c6239","#4e6e81","#7a5c8f"];
+/* 重点关注教师：其课程全站标注（检索徽章 / 周课表金边 / 详情弹窗）。要增删关注对象改这里即可 */
+const KEY_TEACHERS=["张浩泽"];
+const isKeyTeacher=t=>KEY_TEACHERS.some(k=>(t||"").includes(k));
 
 /* ---------- utils ---------- */
 const $ = id => document.getElementById(id);
@@ -885,11 +893,12 @@ function render(){
   if(!rows.length){body2.innerHTML=`<tr><td colspan="9"><div class="empty">没有匹配的课程，试试清除筛选条件</div></td></tr>`;return;}
   body2.innerHTML=rows.map(({r,i})=>{
     const reco=RECO_KEYS.has(r.c+"|"+r.t.split("(")[0].split("/")[0]);
+    const kt=isKeyTeacher(r.t);
     const on=inMy(r);
     const pp=parsePeriods(r.p);
-    return `<tr class="${reco?'reco':''}" style="cursor:pointer" onclick="showCourseModal(DATA[${i}])">
+    return `<tr class="${reco?'reco':''} ${kt?'kt':''}" style="cursor:pointer" onclick="showCourseModal(DATA[${i}])">
       <td><button class="favbtn ${on?'in':''}" onclick="event.stopPropagation();toggleMy(DATA[${i}])">${on?'★':'☆'}</button></td>
-      <td class="c">${r.c}${reco?'<span class="badge">★推荐</span>':''}<div class="small">${r.n}</div></td>
+      <td class="c">${r.c}${reco?'<span class="badge">★推荐</span>':''}${kt?'<span class="badge kt">★重点教师</span>':''}<div class="small">${r.n}</div></td>
       <td>${r.d}</td>
       <td><span class="tlink" title="查看该教师全部课程" onclick="event.stopPropagation();goTeacher('${r.t.replace(/'/g,"\\'")}')">${r.t}</span></td>
       <td>${r.w} ${r.p}${pp?`<div class="small" style="color:var(--zhu)">${blockTime(pp[0],pp[1])}</div>`:""}<div class="small">${r.s||""}</div></td>
@@ -998,8 +1007,9 @@ function renderMy(){
         const blocks=g.members.map(x=>{
           const ci=Math.abs(x.r.c.length*7+x.r.t.length*13)%MYCOLORS.length;
           const conf=confKeys.has(myKey(x.r));
-          return `<div class="trow ${conf?'conf':''}" style="background:${MYCOLORS[ci]}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}">
-          <b>${esc(x.r.c)}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div>`;}).join("");
+          const kt=isKeyTeacher(x.r.t);
+          return `<div class="trow ${conf?'conf':''} ${kt?'kt':''}" style="background:${MYCOLORS[ci]}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}">
+          <b>${esc(x.r.c)}${kt?" ★":""}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div>`;}).join("");
         row+=`<td rowspan="${span}">${blocks}</td>`;
       } else if(!groups.some(g=>g.d===d&&p>g.pmin&&p<=g.pmax)){
         row+=`<td class="ph"></td>`;
@@ -1081,11 +1091,12 @@ function renderWeekAll(){
         const idxs=uniq.map(y=>DATA.indexOf(DATA.find(dd=>dd.c===y.r.c&&dd.t===y.r.t&&dd.w===y.r.w&&dd.p===y.r.p&&dd.r===y.r.r&&dd.z===y.r.z))).filter(i=>i>=0);
         const ref=idxs.length?idxs[0]:null;
         const x=g.members[0];
+        const ktAny=uniq.some(y=>isKeyTeacher(y.r.t)), ktX=isKeyTeacher(x.r.t);
         const more=uniq.length>1? ` +${uniq.length-1}` : "";
         const ci=Math.abs(x.r.c.length*7+x.r.t.length*13)%MYCOLORS.length;
         const onclick=ref!==null? `showCourseModal(DATA[${ref}],wkGroupHtml([${idxs.join(",")}]))` : "";
-        row+=`<td rowspan="${span}"><div class="trow" style="background:${MYCOLORS[ci]}" ${onclick?`onclick='${onclick}'`:``} title="${esc(x.r.c)} ${esc(x.r.t.split("/")[0])} ${esc(x.r.r)}">
-          <b>${esc(x.r.c.split("(")[0])}${more}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div></td>`;
+        row+=`<td rowspan="${span}"><div class="trow ${ktAny?'kt':''}" style="background:${MYCOLORS[ci]}" ${onclick?`onclick='${onclick}'`:``} title="${esc(x.r.c)} ${esc(x.r.t.split("/")[0])} ${esc(x.r.r)}">
+          <b>${esc(x.r.c.split("(")[0])}${ktX?" ★":""}${more}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}${x.r.x&&x.r.x!=="下沙"?" · "+x.r.x:""}</span></div></td>`;
       } else if(!(dayGroup[d]||[]).some(g=>p>g.pmin&&p<=g.pmax)){
         row+=`<td class="ph"></td>`;
       }
@@ -1099,7 +1110,7 @@ function wkGroupHtml(idxs){
   const rows=idxs.map(i=>{
     const r=DATA[i]; const on=inMy(r);
     return `<div class="row" style="border:none"><b>${r.w} ${r.p}</b>
-      <span><b>${esc(r.c)}</b> · ${esc(r.t)} · ${esc(r.x||"—")} ${esc(r.r)} · ${esc(r.n)} ${esc(r.g)}人
+      <span><b>${esc(r.c)}</b>${isKeyTeacher(r.t)?'<span class="badge kt">★重点教师</span>':''} · ${esc(r.t)} · ${esc(r.x||"—")} ${esc(r.r)} · ${esc(r.n)} ${esc(r.g)}人
       <button class="favbtn ${on?'in':''}" style="font-size:12px;padding:4px 12px;margin-left:8px"
         onclick="event.stopPropagation();toggleMy(DATA[${i}]);showCourseModal(DATA[${i}],wkGroupHtml([${idxs.join(",")}]))">${on?'★ 已收藏':'☆ 收藏'}</button></span></div>`;
   }).join("");
@@ -1183,7 +1194,8 @@ function renderFocus(){
         const span=g.pmax-g.pmin+1;
         const blocks=g.members.map(x=>{
           const ci=Math.abs(x.r.c.length*7+x.r.t.length*13)%MYCOLORS.length;
-          return `<div class="trow" style="background:${MYCOLORS[ci]}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}" onclick="showCourseModal(DATA[${x.i}])"><b>${esc(x.r.c)}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}</span></div>`;}).join("");
+          const kt=isKeyTeacher(x.r.t);
+          return `<div class="trow ${kt?'kt':''}" style="background:${MYCOLORS[ci]}" title="${esc(x.r.c)} ${esc(x.r.t)} ${esc(x.r.r)}" onclick="showCourseModal(DATA[${x.i}])"><b>${esc(x.r.c)}${kt?" ★":""}</b><span>${esc(x.r.t.split("/")[0].split("(")[0])} · ${esc(x.r.r)}</span></div>`;}).join("");
         row+=`<td rowspan="${span}">${blocks}</td>`;
       } else if(!groups.some(g=>g.d===d&&p>g.pmin&&p<=g.pmax)){
         row+=`<td class="ph"></td>`;
@@ -1203,11 +1215,16 @@ function renderFocus(){
     const rs=seen[c], first=rs[0];
     const idxs=rs.map(x=>x.i);
     const on=idxs.every(i=>inMy(DATA[i]));
-    /* 时间：每段排课单独换算钟点 */
+    const kt=rs.some(({r})=>isKeyTeacher(r.t));          /* 组内任一段由重点关注教师执教即整行标注 */
+    const multiT=new Set(rs.map(({r})=>r.t)).size>1;
+    /* 时间：每段排课单独换算钟点；多师课在每段后注明执教教师，重点教师的段落加 ★ */
     const slots=[...new Map(rs.map(({r})=>[r.w+"|"+r.p+"|"+r.r,r])).values()];
     const timeHtml=slots.map(r=>{
       const pp=parsePeriods(r.p);
-      return `<div>${r.w} ${r.p}<div class="small" style="color:var(--zhu)">${pp?blockTime(pp[0],pp[1]):""} · ${esc(r.r)}${r.x&&r.x!=="下沙"?" · "+esc(r.x):""}</div></div>`;
+      const seg=rs.filter(x=>x.r.w===r.w&&x.r.p===r.p&&x.r.r===r.r);
+      const segT=[...new Set(seg.map(({r})=>r.t))].join("/");
+      const segKt=seg.some(({r})=>isKeyTeacher(r.t));
+      return `<div>${segKt?"<b style='color:#58639c'>★</b> ":""}${r.w} ${r.p}<div class="small" style="color:var(--zhu)">${pp?blockTime(pp[0],pp[1]):""} · ${esc(r.r)}${r.x&&r.x!=="下沙"?" · "+esc(r.x):""}${multiT?" · "+esc(segT):""}</div></div>`;
     }).join("");
     const tchs=[...new Set(rs.map(({r})=>r.t))].join("；");
     /* 周次：各段原文 + 整门课起止日期 */
@@ -1215,9 +1232,9 @@ function renderFocus(){
     rs.forEach(({r})=>{ const wz=parseWeeks(r.z); if(wz){wkMin=Math.min(wkMin,...wz); wkMax=Math.max(wkMax,...wz);} });
     const dates=(wkMin<=wkMax)?`<div class="small">${weekRangeStr(wkMin).split("–")[0]} 起 · ${weekRangeStr(wkMax).split("–")[1]} 止</div>`:"";
     const zs=[...new Set(rs.map(({r})=>prettyWeek(r.z)))].join("；");
-    return `<tr style="cursor:pointer" onclick="showCourseModal(DATA[${first.i}],wkGroupHtml([${idxs.join(",")}]))">
+    return `<tr class="${kt?'kt':''}" style="cursor:pointer" onclick="showCourseModal(DATA[${first.i}],wkGroupHtml([${idxs.join(",")}]))">
       <td><button class="favbtn ${on?'in':''}" onclick="event.stopPropagation();toggleCourseGroup([${idxs.join(",")}])">${on?'★':'☆'}</button></td>
-      <td class="c">${esc(c)}${rs.length>1?`<div class="small">${rs.length} 条排课 · 多师/多段轮讲</div>`:""}</td>
+      <td class="c">${esc(c)}${kt?'<span class="badge kt">★重点教师</span>':''}${rs.length>1?`<div class="small">${rs.length} 条排课 · 多师/多段轮讲</div>`:""}</td>
       <td>${esc(tchs)}</td>
       <td>${timeHtml}</td>
       <td class="small">${esc(zs)}${dates}</td>
@@ -1584,6 +1601,7 @@ function showCourseModal(r,extraHtml,domc){
     <div class="row"><b>地点</b><span>${r.x?r.x+"校区 ":""}${r.r}</span></div>
     <div class="row"><b>教师</b><span>${r.t}</span></div>
     <div class="row"><b>院系</b><span>${r.d}</span></div>
+    ${isKeyTeacher(r.t)?`<div class="row"><b>标注</b><span style="color:#58639c"><b>★ 重点关注教师</b>（${esc(r.t)}）</span></div>`:""}
     <div class="row"><b>性质</b><span>${r.n} · 选课人数 ${r.g}</span></div>
     ${extraHtml||""}
     <div style="margin-top:14px"><button class="favbtn ${on?'in':''}" style="font-size:13px;padding:7px 18px"
