@@ -487,7 +487,7 @@ details.guide .gbody b{color:var(--zhu)}
       <tbody id="tbody"></tbody>
     </table>
   </div>
-  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。带 <span class="badge kt">★重点教师</span> 徽章的是本学期重点关注教师（张浩泽）的课程，周课表中以金色边框同步标注；<span class="badge goal" style="--gc:#a63a2b">审美</span> 与 <span class="badge goal" style="--gc:#35507d">英语</span> 彩色徽章为兴趣方向学院（艺术设计 / 外国语）的课程，同样在周课表中以对应颜色描边。</div>
+  <div class="note"><b>提示：</b>点教师姓名可查看该教师本学期全部课程；点行首 ☆ 把课加入"我的旁听清单"，自动生成个人周课表并检查时间冲突。带 <span class="badge kt">★重点教师</span> 徽章的是本学期重点关注教师（张浩泽、诸葛斌）的课程，周课表中以金色边框同步标注；<span class="badge goal" style="--gc:#a63a2b">审美</span> 与 <span class="badge goal" style="--gc:#35507d">英语</span> 彩色徽章为兴趣方向学院（艺术设计 / 外国语）的课程，同样在周课表中以对应颜色描边。</div>
 </section>
 
 <!-- ================= MY LIST ================= -->
@@ -617,7 +617,7 @@ const DAYN = ["周一","周二","周三","周四","周五","周六","周日"];
 const RECO_KEYS = new Set(RECO.map(r=>r.c+"|"+r.t.split("(")[0].split("/")[0]));
 const MYCOLORS = ["#b0432f","#35507d","#4a7c59","#8a7332","#58639c","#3f7d6d","#7d4a35","#a05a72","#5b7065","#8c6239","#4e6e81","#7a5c8f"];
 /* 重点关注教师：其课程全站标注（检索徽章 / 周课表金边 / 详情弹窗）。要增删关注对象改这里即可 */
-const KEY_TEACHERS=["张浩泽"];
+const KEY_TEACHERS=["张浩泽","诸葛斌"];
 const isKeyTeacher=t=>KEY_TEACHERS.some(k=>(t||"").includes(k));
 /* 兴趣方向学院：课程全站标注（检索徽章/全校课表描边/详情弹窗），首页有快捷入口可整院查看 */
 const GOAL_DEPTS={
